@@ -79,21 +79,22 @@ while gene_len >= 52:
 #if any secondary structue of 4 bp or > or else 3 GC pairs are found,
 #the strand will be thrown out
 accepted_pairs = copy.deepcopy(rev_comp_pairs)
-not_accepted_pairs = list()
+not_accepted_pairs = list() #for sanity checks
 for pair in rev_comp_pairs:
     for strand in pair:
+        #loops over all possible secondary folding structures with no base in the bulge
         for x in range(6,21):
-            #check secondary structure with no base in the bulge
             short_side = strand[:x]
             long_side = strand[x:]
             secondary_pairs = list()
             consecutive_pairs = 0
             GC_pairs = 0
+            #make sure shorter side of the fold is assigned correctly
             if len(short_side) > len(long_side):
                 temp = copy.deepcopy(short_side)
                 short_side = copy.deepcopy(long_side)
                 long_side = temp
-            #accumulate totals of secondary structure for this strand
+            #accumulate totals of secondary structure for this folding
             for c in range(len(short_side)):
                 if short_side[c] == "A" and long_side[x-2-c] == "T" or short_side[c] == "T" and long_side[x-2-c] == "A":
                     secondary_pairs.append("AT")
@@ -115,17 +116,19 @@ for pair in rev_comp_pairs:
                     accepted_pairs.remove(pair)
                     not_accepted_pairs.append(pair)
             
-            #check secondary structure with one base in the bulge
+        #loops over all possible secondary folding structures with one base in the bulge
+        for x in range(6,21):
             short_side = strand[:x]
             long_side = strand[x + 1:]
             secondary_pairs = list()
             consecutive_pairs = 0
             GC_pairs = 0
+            #make sure shorter side of the fold is assigned correctly
             if len(short_side) > len(long_side):
                 temp = copy.deepcopy(short_side)
                 short_side = copy.deepcopy(long_side)
                 long_side = temp
-            #accumulate totals of secondary structure for this strand
+            #accumulate totals of secondary structure for this folding
             for c in range(len(short_side)):
                 if short_side[c] == "A" and long_side[x-2-c] == "T" or short_side[c] == "T" and long_side[x-2-c] == "A":
                     secondary_pairs.append("AT")
@@ -133,6 +136,7 @@ for pair in rev_comp_pairs:
                     secondary_pairs.append("GC")
                 else: 
                     secondary_pairs.append("N/A")
+            #find consecutive strong pairs in secondary structure
             for y in range(1,len(secondary_pairs)):
                 if (secondary_pairs[y-1] != "N/A" and secondary_pairs [y] != "N/A"):
                     consecutive_pairs = consecutive_pairs + 1
@@ -140,15 +144,12 @@ for pair in rev_comp_pairs:
                 if (secondary_pairs[y-1] == "GC" and secondary_pairs [y] == "GC"):
                     GC_pairs = GC_pairs + 1
                 else: GC_pairs = 0
-            #find consecutive GC pairs
+            #find consecutive GC pairs in secondary structure
             if GC_pairs >= 3 or consecutive_pairs >=4:
-                print("won't work")
                 if pair in accepted_pairs: 
                     accepted_pairs.remove(pair)
                     not_accepted_pairs.append(pair)   
             
-        
-
 #write to .txt file
 with open(gene_name + "_pairs","w") as f:
     for line in accepted_pairs:
