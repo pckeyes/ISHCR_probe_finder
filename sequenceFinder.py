@@ -5,22 +5,23 @@ Created on Tue Mar  5 12:51:59 2019
 
 @author: piperkeyes
 """
+import copy
 
 #Tm = 64.9 +41*(yG+zC-16.4)/(wA+xT+yG+zC)
 
 gene = input("Enter your gene of interest (enclosed in double quotes): ")
+gene_name = input ("Enter the gene's name (enclosed in double quotes): ")
 gene_len = len(gene)
 temps = list()
 original_pairs = list()
 rev_comp_pairs = list()
-
-
+accepted_pairs = list()
 
 #generate pairs of primer dna
 while gene_len >= 52:
     strand1 = gene[0:25]
-    spacer = gene[26:28]
-    strand2 = gene[29:54]
+    spacer = gene[25:27]
+    strand2 = gene[27:52]
     tm1 = 0
     tm2 = 0
     A1 = 0
@@ -72,9 +73,84 @@ while gene_len >= 52:
     else:
         gene = gene [1:]
         gene_len = len(gene)
+        
+#check for secondary structure
+#DNA strands will be folded  from 5 bp to 20 bp on the 5' end
+#if any secondary structue of 4 bp or > or else 3 GC pairs are found,
+#the strand will be thrown out
+accepted_pairs = copy.deepcopy(rev_comp_pairs)
+not_accepted_pairs = list()
+for pair in rev_comp_pairs:
+    for strand in pair:
+        for x in range(6,21):
+            #check secondary structure with no base in the bulge
+            short_side = strand[:x]
+            long_side = strand[x:]
+            secondary_pairs = list()
+            consecutive_pairs = 0
+            GC_pairs = 0
+            if len(short_side) > len(long_side):
+                temp = copy.deepcopy(short_side)
+                short_side = copy.deepcopy(long_side)
+                long_side = temp
+            #accumulate totals of secondary structure for this strand
+            for c in range(len(short_side)):
+                if short_side[c] == "A" and long_side[x-2-c] == "T" or short_side[c] == "T" and long_side[x-2-c] == "A":
+                    secondary_pairs.append("AT")
+                elif short_side[c] == "G" and long_side[x-2-c] == "C" or short_side[c] == "C" and long_side[x-2-c] == "G":
+                    secondary_pairs.append("GC")
+                else: 
+                    secondary_pairs.append("N/A")
+            for y in range(1,len(secondary_pairs)):
+                if (secondary_pairs[y-1] != "N/A" and secondary_pairs [y] != "N/A"):
+                    consecutive_pairs = consecutive_pairs + 1
+                else: consecutive_pairs = 0
+                if (secondary_pairs[y-1] == "GC" and secondary_pairs [y] == "GC"):
+                    GC_pairs = GC_pairs + 1
+                else: GC_pairs = 0
+            #find consecutive GC pairs
+            if GC_pairs >= 3 or consecutive_pairs >=4:
+                print("won't work")
+                if pair in accepted_pairs: 
+                    accepted_pairs.remove(pair)
+                    not_accepted_pairs.append(pair)
+            
+            #check secondary structure with one base in the bulge
+            short_side = strand[:x]
+            long_side = strand[x + 1:]
+            secondary_pairs = list()
+            consecutive_pairs = 0
+            GC_pairs = 0
+            if len(short_side) > len(long_side):
+                temp = copy.deepcopy(short_side)
+                short_side = copy.deepcopy(long_side)
+                long_side = temp
+            #accumulate totals of secondary structure for this strand
+            for c in range(len(short_side)):
+                if short_side[c] == "A" and long_side[x-2-c] == "T" or short_side[c] == "T" and long_side[x-2-c] == "A":
+                    secondary_pairs.append("AT")
+                elif short_side[c] == "G" and long_side[x-2-c] == "C" or short_side[c] == "C" and long_side[x-2-c] == "G":
+                    secondary_pairs.append("GC")
+                else: 
+                    secondary_pairs.append("N/A")
+            for y in range(1,len(secondary_pairs)):
+                if (secondary_pairs[y-1] != "N/A" and secondary_pairs [y] != "N/A"):
+                    consecutive_pairs = consecutive_pairs + 1
+                else: consecutive_pairs = 0
+                if (secondary_pairs[y-1] == "GC" and secondary_pairs [y] == "GC"):
+                    GC_pairs = GC_pairs + 1
+                else: GC_pairs = 0
+            #find consecutive GC pairs
+            if GC_pairs >= 3 or consecutive_pairs >=4:
+                print("won't work")
+                if pair in accepted_pairs: 
+                    accepted_pairs.remove(pair)
+                    not_accepted_pairs.append(pair)   
+            
+        
 
 #write to .txt file
-with open("pairs","w") as f:
-    for line in rev_comp_pairs:
+with open(gene_name + "_pairs","w") as f:
+    for line in accepted_pairs:
         strs=" ".join(str(x) for x in line)
         f.write(strs+"\n")
