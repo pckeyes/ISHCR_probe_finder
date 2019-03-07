@@ -111,7 +111,6 @@ for pair in rev_comp_pairs:
                 else: GC_pairs = 0
             #find consecutive GC pairs
             if GC_pairs >= 3 or consecutive_pairs >=4:
-                print("won't work")
                 if pair in accepted_pairs: 
                     accepted_pairs.remove(pair)
                     not_accepted_pairs.append(pair)
