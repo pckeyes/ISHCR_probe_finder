@@ -6,6 +6,8 @@ Created on Tue Mar  5 12:51:59 2019
 @author: piperkeyes
 """
 import copy
+#from IPython import get_ipython
+#get_ipython().magic('reset -sf')
 
 #Tm = 64.9 +41*(yG+zC-16.4)/(wA+xT+yG+zC)
 
@@ -22,17 +24,13 @@ def main():
         spacer = gene[25:27]
         strand2 = gene[27:52]
         (tm1, tm2) = getMeltingTemp(strand1, strand2)
-        print("passed melting temp")
         if tm1 < 65 and tm1 > 55 and tm2 < 65 and tm2 > 55:
             rev_comp_pair = getReverseComplement(strand1, strand2, original_pairs, rev_comp_pairs)
-            print("passed getting reverse complement")
             accepted = acceptOrRejectPair(rev_comp_pair, accepted_pairs, not_accepted_pairs)
-            print("passed accepting or rejecting")
             if (accepted): gene = gene[79:]
             else: gene = gene[1:]
         else: gene = gene[1:]
         gene_len = len(gene)
-        print(gene_len)
     writeToFile(gene_name, accepted_pairs)
 
 def getMeltingTemp(strand1, strand2):
@@ -93,8 +91,8 @@ def acceptOrRejectPair(rev_comp_pair, accepted_pairs, not_accepted_pairs):
                 temp = copy.deepcopy(short_side)
                 short_side = copy.deepcopy(long_side)
                 long_side = temp
-            (consecutive_pairs, GC_pairs) = getSecondaryStructure(short_side, long_side, x)
-            if GC_pairs >= 3 or consecutive_pairs >=4:
+            (max_consecutive_pairs, max_GC_pairs) = getSecondaryStructure(short_side, long_side, x)
+            if max_GC_pairs >= 3 or max_consecutive_pairs >=4:
                 not_accepted_pairs.append(rev_comp_pair)
                 return False
             
@@ -107,16 +105,18 @@ def acceptOrRejectPair(rev_comp_pair, accepted_pairs, not_accepted_pairs):
                 temp = copy.deepcopy(short_side)
                 short_side = copy.deepcopy(long_side)
                 long_side = temp
-            (consecutive_pairs, GC_pairs) = getSecondaryStructure(short_side, long_side, x)
-            if GC_pairs >= 3 or consecutive_pairs >=4:
+            (max_consecutive_pairs, max_GC_pairs) = getSecondaryStructure(short_side, long_side, x)
+            if max_GC_pairs >= 3 or max_consecutive_pairs >=4:
                 not_accepted_pairs.append(rev_comp_pair)
                 return False
     accepted_pairs.append(rev_comp_pair)
     return True
 
 def getSecondaryStructure(short_side, long_side, x):
-    consecutive_pairs = 0
-    GC_pairs = 0
+    curr_consecutive_pairs = 1
+    max_consecutive_pairs = 1
+    curr_GC_pairs = 1
+    max_GC_pairs = 1
     secondary_pairs = list()
     #accumulate totals of secondary structure for this folding
     for c in range(len(short_side)):
@@ -129,13 +129,22 @@ def getSecondaryStructure(short_side, long_side, x):
     for y in range(1,len(secondary_pairs)):
         #find consecutive strong pairs in secondary structure
         if (secondary_pairs[y-1] != "N/A" and secondary_pairs [y] != "N/A"):
-            consecutive_pairs = consecutive_pairs + 1
-        else: consecutive_pairs = 0
+            curr_consecutive_pairs = curr_consecutive_pairs + 1
+        else: 
+            if (curr_consecutive_pairs > max_consecutive_pairs): 
+                max_consecutive_pairs = curr_consecutive_pairs
+            curr_consecutive_pairs = 1
         #find consecutive GC pairs
         if (secondary_pairs[y-1] == "GC" and secondary_pairs [y] == "GC"):
-            GC_pairs = GC_pairs + 1
-        else: GC_pairs = 0
-    return (consecutive_pairs, GC_pairs)
+            curr_GC_pairs = curr_GC_pairs + 1
+        else: 
+            if (curr_GC_pairs > max_GC_pairs): max_GC_pairs = curr_GC_pairs
+            curr_GC_pairs = 1
+    if max_GC_pairs >= 3 or max_consecutive_pairs >=4:
+        print(max_consecutive_pairs)
+        print(max_GC_pairs)
+        print(secondary_pairs)
+    return (max_consecutive_pairs, max_GC_pairs)
 
 def writeToFile(gene_name, accepted_pairs):
     with open(gene_name + "_pairs","w") as f:
@@ -145,7 +154,4 @@ def writeToFile(gene_name, accepted_pairs):
   
 if __name__== "__main__":
   main()
-        
-            
-#write to .txt file
 
